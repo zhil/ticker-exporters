@@ -3,7 +3,7 @@
 Allows exporting ticker and account data, for gathering with [Prometheus](https://prometheus.io).
 
 ## Supported:
-Note! Account data is only exported with API credentials in the config file
+Note! Some exporters require API credentials.
 
 ### Account Balance Only:
 *   [etherscan](https://etherscan.io) - API credentials required
