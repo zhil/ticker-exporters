@@ -60,6 +60,11 @@ The following options are supported by all exporters:
 *   `url` (string) - allows for override of the default API URL
 
 ### Additional Options Specific for Each Exporter
+#### `abucoins_exporter`
+*   `api_key` (string) - the API key from the exchange
+*   `api_secret` (string) - the API secret from the exchange
+
+
 #### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
@@ -105,5 +110,70 @@ RestartSec=30
 WantedBy=multi-user.target
 ```
 
+## Full Configuration Examples
+```yaml
+abucoins_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  export: 'text'
+  listen_port: 9312
+  url: 'https://api.abucoins.com'
+bitfinex_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
+  export: 'text'
+  listen_port: 9309
+  url: 'https://api.bitfinex.com'
+bitstamp_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '5'
+  export: 'text'
+  listen_port: 9313
+  url: 'https://www.bitstamp.net/api'
+etherscan_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  api_key: 'my_api_key'
+  export: 'text'
+  listen_port: 9308
+  url: 'https://api.etherscan.io/api'
+  addresses: ['0x90833394db1b53f08b9d97dab8beff69fcf3ba49']
+  tokens: [{'short': 'OMG', 'decimals': 18, 'name': 'OmiseGO', 'contract': '0xd26114cd6EE289AccF82350c8d8487fedB8A0C07'}, {'short': 'INSP', 'decimals': 0, 'name': 'INS Promo', 'contract': '0x52903256dd18d85c2dc4a6c999907c9793ea61e3'}, {'short': 'VIU', 'decimals': 18, 'name': 'VIU', 'contract': '0x519475b31653e46d20cd09f9fdcf3b12bdacb4f5'}, {'short': 'DATA', 'decimals': 18, 'name': 'DATAcoin', 'contract': '0x0cf0ee63788a0849fe5297f3407f701e122cc023'}, {'short': 'XNN', 'decimals': 18, 'name': 'XENON', 'contract': '0xab95e915c123fded5bdfb6325e35ef5515f1ea69'}]
+gdax_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '5'
+  export: 'text'
+  listen_port: 9306
+kraken_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  export: 'text'
+  listen_port: 9310
+  url: 'https://api.kraken.com'
+  timeout: '30'
+poloniex_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  export: 'text'
+  listen_port: 9311
+  timeout: '30'
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
+quoine_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '10'
+  export: 'text'
+  listen_port: 9314
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
+ripple_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  url: 'https://data.ripple.com'
+  addresses: ['rLW9gnQo7BQhU6igk5keqYnH3TVrCxGRzm']
+```
+
 ## Donations
-*   ETH: 0x90833394db1b53f08b9d97dab8beff69fcf3ba49
+*   ETH: 0x90833394dB1b53f08B9D97dab8BEFf69FCf3bA49
