@@ -96,7 +96,6 @@ class AbucoinsCollector:
             secret_key=settings['abucoins_exporter']['api_secret'],
             passphrase=settings['abucoins_exporter']['api_passphrase']
         )
-        self._getSymbols()
 
     def _translate(self, currency):
         r = currency
@@ -127,11 +126,13 @@ class AbucoinsCollector:
             r = False
         if r and r.status_code == 200:
             for symbol in r.json():
-                self.symbols.append(symbol['id'])
+                if symbol['id'] not in self.symbols:
+                    self.symbols.append(symbol['id'])
 
         log.debug('Found the following symbols: {}'.format(self.symbols))
 
     def _getExchangeRates(self):
+        self._getSymbols()
         for symbol in self.symbols:
             path = "/products/{symbol}/ticker".format(symbol=symbol)
             try:

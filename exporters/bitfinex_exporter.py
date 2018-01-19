@@ -88,16 +88,17 @@ class BitfinexCollector:
 
     def _getSymbols(self):
         """
-        Gets the list of symbols, if none are configured in the settings file.
-        Only one call, at start, so that we don't hit the rate limit on the API
+        Gets the list of symbols
 
         Unfortunately, this only works over the v1 API
         """
+        self.symbols = []
         path = "/v1/symbols"
         r = requests.get(settings['bitfinex_exporter']['url'] + path, verify=True)
         if r and r.status_code == 200:
             for symbol in r.json():
-                self.symbols.append(symbol.upper())
+                if symbol.upper() not in self.symbols:
+                    self.symbols.append(symbol.upper())
         else:
             log.warning('Could not retrieve symbols. Response follows.')
             log.warning(r.headers)
@@ -135,8 +136,7 @@ class BitfinexCollector:
             log.warning(r.text)
 
     def _getExchangeRates(self):
-        if not self.symbols:
-            self._getSymbols()
+        self._getSymbols()
         if self.symbols:
             get_symbols = []
             for symbol in self.symbols:

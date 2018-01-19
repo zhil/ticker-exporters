@@ -70,7 +70,7 @@ class KrakenCollector:
 
     def _getSymbols(self):
         """
-        Gets the list of symbols, if none are configured in the settings file.
+        Gets the list of symbols.
         """
         path = "/0/public/AssetPairs"
         r = requests.get(
@@ -83,7 +83,9 @@ class KrakenCollector:
             for symbol in symbols:
                 if symbols[symbol]['altname'].endswith(('.d')):
                     continue
-                self.symbols.append(symbols[symbol]['altname'].upper())
+                gather_symbol = symbols[symbol]['altname'].upper()
+                if gather_symbol not in self.symbols:
+                    self.symbols.append(gather_symbol)
         else:
             log.warning('Could not retrieve symbols. Response follows.')
             log.warning(r.headers)
@@ -92,8 +94,7 @@ class KrakenCollector:
         log.debug('Found the following symbols: {}'.format(self.symbols))
 
     def _getExchangeRates(self):
-        if not self.symbols:
-            self._getSymbols()  # Only one call, if the symbols are missing.
+        self._getSymbols()
         if self.symbols:
             pairs_string = ','.join(self.symbols)
             path = "/0/public/Ticker"
@@ -118,7 +119,6 @@ class KrakenCollector:
                 if r.status_code == 200 and r.json().get('result'):
                     tickers = r.json()['result']
                     for ticker in tickers:
-                        log.debug('Got {} - {}'.format(ticker, tickers[ticker]))
                         pair = {
                             'source_currency': self._translate(ticker[0:3]),
                             'target_currency': self._translate(ticker[-3:]),
@@ -129,12 +129,12 @@ class KrakenCollector:
                             pair['source_currency'] = self._translate(ticker[1:4])
 
                         self.rates.update({
-                            '{}-{}'.format(ticker, tickers[ticker]): pair
+                            '{}'.format(ticker): pair
                         })
                 else:
                     log.warning('Could not retrieve ticker data. Response follows.')
                     log.warning(r.headers)
-                    log.warning(r.json())
+                    log.warning(r.text)
         log.debug('Found the following ticker rates: {}'.format(self.rates))
 
     def collect(self):
