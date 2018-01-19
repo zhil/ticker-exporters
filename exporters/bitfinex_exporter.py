@@ -56,7 +56,9 @@ def _settings():
 
 
 class BitfinexCollector:
-    trade_symbols = []
+    symbols = []
+    rates = {}
+    accounts = {}
 
     def __init__(self):
         self._getSymbols()
@@ -95,37 +97,34 @@ class BitfinexCollector:
         r = requests.get(settings['bitfinex_exporter']['url'] + path, verify=True)
         if r and r.status_code == 200:
             for symbol in r.json():
-                self.trade_symbols.append(symbol.upper())
+                self.symbols.append(symbol.upper())
         else:
             log.warning('Could not retrieve symbols. Response follows.')
             log.warning(r.headers)
             log.warning(r.json())
 
-        log.debug('Found the following symbols: {}'.format(self.trade_symbols))
+        log.debug('Found the following symbols: {}'.format(self.symbols))
 
     def _getAccountBalances(self):
-        result = []
         nonce = self._nonce()
-        body = {}
-        rawBody = json.dumps(body)
+        rawBody = json.dumps({})
         path = "/v2/auth/r/wallets"
-
-        log.debug(settings['bitfinex_exporter']['url'] + path)
-
         headers = self._headers(path, nonce, rawBody)
 
+        log.debug(settings['bitfinex_exporter']['url'] + path)
         log.debug('Headers: {}'.format(headers))
-        log.debug('Body: {}'.format(rawBody))
 
         r = requests.post(settings['bitfinex_exporter']['url'] + path, headers=headers, data=rawBody, verify=True)
 
         if r and r.status_code == 200:
             for account in r.json():
                 if isinstance(account, list):
-                    result.append({
-                        'balance': account[2],
-                        'currency': account[1],
-                        'account': account[0],
+                    self.accounts.update({
+                        '{}-{}'.format(account[0], account[1]): {
+                            'balance': account[2],
+                            'currency': account[1],
+                            'account': account[0],
+                        }
                     })
                 else:
                     log.warning('Invalid object in response.')
@@ -133,17 +132,16 @@ class BitfinexCollector:
         else:
             log.warning('Could not retrieve data. Response follows.')
             log.warning(r.headers)
-            log.warning(r.json())
-
-        return result
+            log.warning(r.text)
 
     def _getExchangeRates(self):
-        result = []
-        if self.trade_symbols:
-            symbols = []
-            for symbol in self.trade_symbols:
-                symbols.append('t{}'.format(symbol))
-            symbols_string = ','.join(symbols)
+        if not self.symbols:
+            self._getSymbols()
+        if self.symbols:
+            get_symbols = []
+            for symbol in self.symbols:
+                get_symbols.append('t{}'.format(symbol))
+            symbols_string = ','.join(get_symbols)
             path = "/v2/tickers"
 
             log.debug('Symbols: {}'.format(symbols_string))
@@ -156,10 +154,14 @@ class BitfinexCollector:
             if r and r.status_code == 200:
                 for ticker in r.json():
                     if isinstance(ticker, list):
-                        result.append({
-                            'source_currency': ticker[0][1:4],
-                            'target_currency': ticker[0][-3:],
-                            'value': ticker[7],
+                        source_currency = ticker[0][1:4]
+                        target_currency = ticker[0][-3:]
+                        self.rates.update({
+                            '{}-{}'.format(source_currency, target_currency): {
+                                'source_currency': source_currency,
+                                'target_currency': target_currency,
+                                'value': ticker[7],
+                            }
                         })
                     else:
                         log.warning('Invalid object in response for ticker.')
@@ -167,9 +169,8 @@ class BitfinexCollector:
             else:
                 log.warning('Could not retrieve ticker data. Response follows.')
                 log.warning(r.headers)
-                log.warning(r.json())
-        log.debug('Found the following ticker rates: {}'.format(result))
-        return result
+                log.warning(r.text)
+        log.debug('Found the following ticker rates: {}'.format(self.rates))
 
     def collect(self):
         metrics = {
@@ -186,23 +187,25 @@ class BitfinexCollector:
                 'Account Balance',
                 labels=['source_currency', 'currency', 'account', 'type']
             )})
-            for account in self._getAccountBalances():
+            self._getAccountBalances()
+            for account in self.accounts:
                 metrics['account_balance'].add_metric(
-                    value=(account['balance']),
+                    value=(self.accounts[account]['balance']),
                     labels=[
-                        account['currency'],
-                        account['currency'],
-                        account['account'],
+                        self.accounts[account]['currency'],
+                        self.accounts[account]['currency'],
+                        self.accounts[account]['account'],
                         'bitfinex'
                     ]
                 )
 
-        for exchange_rate in self._getExchangeRates():
+        self._getExchangeRates()
+        for rate in self.rates:
             metrics['exchange_rate'].add_metric(
-                value=exchange_rate['value'],
+                value=self.rates[rate]['value'],
                 labels=[
-                    exchange_rate['source_currency'],
-                    exchange_rate['target_currency'],
+                    self.rates[rate]['source_currency'],
+                    self.rates[rate]['target_currency'],
                     'bitfinex'
                 ]
             )
