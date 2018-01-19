@@ -91,9 +91,11 @@ class AbucoinsCollector:
     rates = {}
 
     def __init__(self):
-        if settings['abucoins_exporter'].get('api_key')
-        and settings['abucoins_exporter'].get('api_secret')
-        and settings['abucoins_exporter'].get('api_passphrase'):
+        if (
+            settings['abucoins_exporter'].get('api_key')
+            and settings['abucoins_exporter'].get('api_secret')
+            and settings['abucoins_exporter'].get('api_passphrase')
+        ):
             self.authenticator = AbuCoins(
                 api_key=settings['abucoins_exporter']['api_key'],
                 secret_key=settings['abucoins_exporter']['api_secret'],
