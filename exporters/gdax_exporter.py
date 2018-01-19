@@ -26,7 +26,7 @@ def _settings():
             'prom_folder': '/var/lib/node_exporter',
             'interval': 60,
             'export': 'text',
-            'listen_port': 9306,
+            'listen_port': 9302,
         },
     }
     config_file = '/etc/gdax_exporter/gdax_exporter.yaml'

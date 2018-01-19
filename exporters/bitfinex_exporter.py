@@ -29,9 +29,8 @@ def _settings():
             'api_key': None,
             'api_secret': None,
             'export': 'text',
-            'listen_port': 9309,
+            'listen_port': 9300,
             'url': 'https://api.bitfinex.com',
-            'trade_symbols': [],
         },
     }
     config_file = '/etc/bitfinex_exporter/bitfinex_exporter.yaml'
@@ -54,11 +53,14 @@ def _settings():
             settings['bitfinex_exporter']['export'] = cfg['bitfinex_exporter']['export']
         if cfg['bitfinex_exporter'].get('listen_port'):
             settings['bitfinex_exporter']['listen_port'] = cfg['bitfinex_exporter']['listen_port']
-        if cfg['bitfinex_exporter'].get('trade_symbols'):
-            settings['bitfinex_exporter']['trade_symbols'] = cfg['bitfinex_exporter']['trade_symbols']
 
 
 class BitfinexCollector:
+    trade_symbols = []
+
+    def __init__(self):
+        self._getSymbols()
+
     def _nonce(self):
         """
         Returns a nonce
@@ -82,9 +84,10 @@ class BitfinexCollector:
             "content-type": "application/json"
         }
 
-    def _getSymbols():
+    def _getSymbols(self):
         """
-        Gets the list of symbols, if none are configured in the settings file. Only one call, at start.
+        Gets the list of symbols, if none are configured in the settings file.
+        Only one call, at start, so that we don't hit the rate limit on the API
 
         Unfortunately, this only works over the v1 API
         """
@@ -92,13 +95,13 @@ class BitfinexCollector:
         r = requests.get(settings['bitfinex_exporter']['url'] + path, verify=True)
         if r and r.status_code == 200:
             for symbol in r.json():
-                settings['bitfinex_exporter']['trade_symbols'].append(symbol.upper())
+                self.trade_symbols.append(symbol.upper())
         else:
             log.warning('Could not retrieve symbols. Response follows.')
             log.warning(r.headers)
             log.warning(r.json())
 
-        log.debug('Found the following symbols: {}'.format(settings['bitfinex_exporter']['trade_symbols']))
+        log.debug('Found the following symbols: {}'.format(self.trade_symbols))
 
     def _getAccountBalances(self):
         result = []
@@ -136,9 +139,9 @@ class BitfinexCollector:
 
     def _getExchangeRates(self):
         result = []
-        if settings['bitfinex_exporter']['trade_symbols']:
+        if self.trade_symbols:
             symbols = []
-            for symbol in settings['bitfinex_exporter']['trade_symbols']:
+            for symbol in self.trade_symbols:
                 symbols.append('t{}'.format(symbol))
             symbols_string = ','.join(symbols)
             path = "/v2/tickers"
@@ -216,6 +219,7 @@ def _collect_to_text():
 
 
 def _collect_to_http():
+    REGISTRY.register(BitfinexCollector())
     start_http_server(int(settings['bitfinex_exporter']['listen_port']))
     while True:
         time.sleep(int(settings['bitfinex_exporter']['interval']))
@@ -223,9 +227,7 @@ def _collect_to_http():
 
 if __name__ == '__main__':
     _settings()
-    BitfinexCollector._getSymbols()
     log.debug('Loaded settings: {}'.format(settings))
-    REGISTRY.register(BitfinexCollector())
     if settings['bitfinex_exporter']['export'] == 'text':
         _collect_to_text()
     if settings['bitfinex_exporter']['export'] == 'http':

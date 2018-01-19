@@ -27,9 +27,8 @@ def _settings():
             'prom_folder': '/var/lib/node_exporter',
             'interval': 60,
             'export': 'text',
-            'listen_port': 9310,
+            'listen_port': 9303,
             'url': 'https://api.kraken.com',
-            'trade_symbols': [],
             'timeout': 5,
         },
     }
@@ -54,13 +53,10 @@ def _settings():
 
 
 class KrakenCollector:
-    rates = []
-    symbols = {}
+    rates = {}
+    symbols = []
 
-    def __init__(self):
-        self._getExchangeRates()
-
-    def _translate(currency):
+    def _translate(self, currency):
         r = currency
         if currency == 'DASH':
             r = 'DSH'
@@ -68,13 +64,13 @@ class KrakenCollector:
             r = 'BTC'
         if currency == 'DOGE':
             r = 'XDG'
+        if currency == 'STR':
+            r = 'XLM'
         return r
 
     def _getSymbols(self):
         """
-        Gets the list of symbols, if none are configured in the settings file. Only one call, at start.
-
-        Unfortunately, this only works over the v1 API
+        Gets the list of symbols, if none are configured in the settings file.
         """
         path = "/0/public/AssetPairs"
         r = requests.get(
@@ -87,20 +83,19 @@ class KrakenCollector:
             for symbol in symbols:
                 if symbols[symbol]['altname'].endswith(('.d')):
                     continue
-                settings['kraken_exporter']['trade_symbols'].append(symbols[symbol]['altname'].upper())
+                self.symbols.append(symbols[symbol]['altname'].upper())
         else:
             log.warning('Could not retrieve symbols. Response follows.')
             log.warning(r.headers)
             log.warning(r.json())
 
-        log.debug('Found the following symbols: {}'.format(settings['kraken_exporter']['trade_symbols']))
+        log.debug('Found the following symbols: {}'.format(self.symbols))
 
     def _getExchangeRates(self):
-        result = []
-        if not settings['kraken_exporter']['trade_symbols']:
-            self._getSymbols()
-        if settings['kraken_exporter']['trade_symbols']:
-            pairs_string = ','.join(settings['kraken_exporter']['trade_symbols'])
+        if not self.symbols:
+            self._getSymbols()  # Only one call, if the symbols are missing.
+        if self.symbols:
+            pairs_string = ','.join(self.symbols)
             path = "/0/public/Ticker"
 
             log.debug('Pairs: {}'.format(pairs_string))
@@ -125,22 +120,22 @@ class KrakenCollector:
                     for ticker in tickers:
                         log.debug('Got {} - {}'.format(ticker, tickers[ticker]))
                         pair = {
-                            'source_currency': KrakenCollector._translate(ticker[0:3]),
-                            'target_currency': KrakenCollector._translate(ticker[-3:]),
+                            'source_currency': self._translate(ticker[0:3]),
+                            'target_currency': self._translate(ticker[-3:]),
                             'value': float(tickers[ticker]['c'][0]),
                         }
 
                         if ticker.startswith('X') and len(ticker) == 8:
-                            pair['source_currency'] = KrakenCollector._translate(ticker[1:4])
+                            pair['source_currency'] = self._translate(ticker[1:4])
 
-                        result.append(pair)
+                        self.rates.update({
+                            '{}-{}'.format(ticker, tickers[ticker]): pair
+                        })
                 else:
                     log.warning('Could not retrieve ticker data. Response follows.')
                     log.warning(r.headers)
                     log.warning(r.json())
-        log.debug('Found the following ticker rates: {}'.format(result))
-        if result:
-            self.rates = result
+        log.debug('Found the following ticker rates: {}'.format(self.rates))
 
     def collect(self):
         metrics = {
@@ -150,12 +145,13 @@ class KrakenCollector:
                 labels=['source_currency', 'target_currency', 'exchange']
             ),
         }
+        self._getExchangeRates()
         for rate in self.rates:
             metrics['exchange_rate'].add_metric(
-                value=rate['value'],
+                value=self.rates[rate]['value'],
                 labels=[
-                    rate['source_currency'],
-                    rate['target_currency'],
+                    self.rates[rate]['source_currency'],
+                    self.rates[rate]['target_currency'],
                     'kraken'
                 ]
             )
@@ -165,9 +161,8 @@ class KrakenCollector:
 
 
 def _collect_to_text():
-    global exchange_rates
+    e = KrakenCollector()
     while True:
-        e = KrakenCollector()
         write_to_textfile('{0}/kraken_exporter.prom'.format(settings['kraken_exporter']['prom_folder']), e)
         time.sleep(int(settings['kraken_exporter']['interval']))
 

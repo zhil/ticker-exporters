@@ -7,7 +7,6 @@ import yaml
 import sys
 import requests
 import json
-from operator import itemgetter
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
 
@@ -26,7 +25,7 @@ def _settings():
             'interval': 60,
             'api_key': False,
             'export': 'text',
-            'listen_port': 9308,
+            'listen_port': 9301,
             'url': 'https://api.etherscan.io/api',
             'addresses': [],
             'tokens': [],
