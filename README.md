@@ -16,6 +16,7 @@ Make sure that the API keys you configure are **read only** keys!
 ### Ticker Data Only:
 *   [GDAX](https://www.gdax.com)
 *   [Kraken](https://www.kraken.com)
+*   [Abucoins](https://abucoins.com/)
 
 ### Both Account Balance and Ticker Data
 *   [BitFinex](https://www.bitfinex.com) - API credentials required for account balance
