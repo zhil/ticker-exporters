@@ -82,7 +82,15 @@ class PoloniexCollector:
 
     def _getAccounts(self):
         result = []
-        balances = self.__POLO.returnBalances()
+        balances = []
+        try:
+            balances = self.__POLO.returnBalances()
+        except (
+            poloniex.PoloniexError
+        ) as e:
+            log.warning('Could not retrieve balances. The error follows.')
+            log.warning(e)
+
         for balance in balances:
             log.debug('Got balance for {}: {}'.format(balance, balances[balance]))
             result.append({
