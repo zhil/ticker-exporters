@@ -65,10 +65,11 @@ Most exporters also support an `url` (string) option. Exceptions are:
 
 ### Additional Options Specific for Each Exporter
 #### `abucoins_exporter`
+This is listed separately, since the API credentials are not yet used.
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
-#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter`
+#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
