@@ -14,6 +14,7 @@ Make sure that the API keys you configure are **read only** keys!
 ### Account Balance Only:
 *   [etherscan / ETH](https://etherscan.io) - API credentials required
 *   [Ripple / XRP](https://xrpcharts.ripple.com/)
+*   [Stellar / XLM](https://www.stellar.org/account-viewer/)
 
 ### Ticker Data Only:
 *   [GDAX](https://www.gdax.com)
@@ -30,7 +31,7 @@ Make sure that the API keys you configure are **read only** keys!
 ## Requirements
 *   python3 (I use 3.5.2 on Ubuntu 16.04)
 *   pip3 (I use 8.1.1, since it was installed with `apt`)
-*   every exporter has a `*_requirements.txt` file. Install the modules with `pip3 install -r file__requirements.txt`
+*   every exporter has a `*_requirements.txt` file. Install the modules with `pip3 install -r file__requirements.txt`. Alternatively, you can install all the requirements: `pip3 install -r all_requirements.txt`.
 
 ## Configuration
 All the exporters try to load the configuration file located in `/etc/*_exporter/*.exporter.yaml`. For example, the
@@ -99,8 +100,8 @@ etherscan_exporter:
 #### `kraken_exporter`
 *   `timeout` (integer / string) - timeout in seconds for the requests to the API
 
-#### `ripple_exporter`
-*   `addresses` (list of strings) - the list of ETH addresses for which to collect the balance
+#### `ripple_exporter` + `stellar_exporter`
+*   `addresses` (list of strings) - the list of ETH/XLM addresses for which to collect the balance
 
 ## `systemd` Unit File Example
 ```
@@ -186,6 +187,12 @@ ripple_exporter:
   interval: '60'
   url: 'https://data.ripple.com'
   addresses: ['rLW9gnQo7BQhU6igk5keqYnH3TVrCxGRzm']
+stellar_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '60'
+  export: 'text'
+  listen_port: 9308
+  accounts: ['GCO2IP3MJNUOKS4PUDI4C7LGGMQDJGXG3COYX3WSB4HHNAHKYV5YL3VC']
 ```
 
 ## Donations

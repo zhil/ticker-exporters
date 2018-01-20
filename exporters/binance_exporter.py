@@ -25,7 +25,7 @@ def settings():
             'prom_folder': '/var/lib/node_exporter',
             'interval': 30,
             'export': 'text',
-            'listen_port': 9305,
+            'listen_port': 9308,
             'api_key': '',
             'api_secret': '',
         },
