@@ -22,7 +22,8 @@ Make sure that the API keys you configure are **read only** keys!
 ### Both Account Balance and Ticker Data
 *   [BitFinex](https://www.bitfinex.com) - API credentials required for account balance
 *   [Quoine](https://www.quoine.com) (with the two brands [Quoinex](https://trade.quoinex.com) and [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
-*   [Poloniex](https://poloniex.com) - API credentials required for account balance
+*   [Poloniex](https://poloniex.com) - API credentials required for account balance - **WARNING!** The library used is [poloniex](https://github.com/s4w3d0ff/python-poloniex). This library isn't available over PyPi.
+*   [Binance](https://www.binance.com) - API credentials are required for both account balance and ticker data
 
 ## Requirements
 *   python3 (I use 3.5.2 on Ubuntu 16.04)
@@ -50,20 +51,22 @@ The following options are supported by all exporters:
   interval: 60
   export: text
   listen_port: 9302
-  url: https://api_url_comes_here
 ```
 
 *   `prom_folder` (string) - for write_to_textfile - the folder on the HDD where the node_exporter looks for the .prom files
 *   `interval` (integer / string) - the data gathering interval in seconds
 *   `export` (string) - switch for `text`/`html` - use `node_exporter` to collect the metrics or open a port for http connection from prometheus
 *   `listen_port` (integer / string) - the TCP port to open, if `export` has been set to `text`
-*   `url` (string) - allows for override of the default API URL
+
+Most exporters also support an `url` (string) option. Exceptions are:
+*   `quoine_exporter` - there are two urls used, one for Quoinex and one for Qryptos. These URLs are hard coded.
+*   `binance_exporter` - the library (python-binance) provides the URL
+*   `poloniex_exporter` - the library (poloniex) provides the URL
 
 ### Additional Options Specific for Each Exporter
 #### `abucoins_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
-
 
 #### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter`
 *   `api_key` (string) - the API key from the exchange
@@ -118,6 +121,13 @@ abucoins_exporter:
   export: 'text'
   listen_port: 9312
   url: 'https://api.abucoins.com'
+binance_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '10'
+  export: 'text'
+  listen_port: 9315
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
 bitfinex_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
