@@ -6,6 +6,8 @@ Merge/Pull requests are welcomed, I reserve however the right to accept/deny the
 
 This project is hosted on [gitlab.com/tlex/ticker-exporters](https://gitlab.com/tlex/ticker-exporters) and mirrored on [github.com/tlex/ticker-exporters](https://github.com/tlex/ticker-exporters).
 
+> **Note**! The development is only done on [gitlab.com/tlex/ticker-exporters](https://gitlab.com/tlex/ticker-exporters). Please open your issues / merge requests there.
+
 ## Supported:
 > Note! Some exporters require API credentials.
 
