@@ -18,7 +18,6 @@ Make sure that the API keys you configure are **read only** keys!
 
 ### Ticker Data Only:
 *   [GDAX](https://www.gdax.com)
-*   [Kraken](https://www.kraken.com)
 *   [Abucoins](https://abucoins.com/)
 *   [BitStamp](https://www.bitstamp.net)
 
@@ -27,6 +26,7 @@ Make sure that the API keys you configure are **read only** keys!
 *   [Quoine](https://www.quoine.com) (with the two brands [Quoinex](https://trade.quoinex.com) and [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
 *   [Poloniex](https://poloniex.com) - API credentials required for account balance - **WARNING!** The library used is [poloniex](https://github.com/s4w3d0ff/python-poloniex). This library isn't available over PyPi.
 *   [Binance](https://www.binance.com) - API credentials are required for both account balance and ticker data
+*   [Kraken](https://www.kraken.com) - API credentials are required for account balance
 
 ## Requirements
 *   python3 (I use 3.5.2 on Ubuntu 16.04)
@@ -75,6 +75,10 @@ This is listed separately, since the API credentials are not yet used.
 #### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
+
+#### `kraken_exporter`
+*   `api_key` (string) - the API key from the exchange
+*   `private_key` (string) - the API private key from the exchange
 
 #### `etherscan_exporter`
 *   `api_key` (string) - the etherscan API key
@@ -167,6 +171,8 @@ kraken_exporter:
   listen_port: 9310
   url: 'https://api.kraken.com'
   timeout: '30'
+  api_key: 'my_api_key'
+  private_key: 'my_private_key'
 poloniex_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
