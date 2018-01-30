@@ -7,9 +7,7 @@ import yaml
 import sys
 import requests
 import json
-import base64
-import hashlib
-import hmac
+import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
 
@@ -30,6 +28,8 @@ def _settings():
             'listen_port': 9303,
             'url': 'https://api.kraken.com',
             'timeout': 5,
+            'api_key': '',
+            'api_secret': '',
         },
     }
     config_file = '/etc/kraken_exporter/kraken_exporter.yaml'
@@ -50,92 +50,61 @@ def _settings():
             settings['kraken_exporter']['listen_port'] = cfg['kraken_exporter']['listen_port']
         if cfg['kraken_exporter'].get('timeout'):
             settings['kraken_exporter']['timeout'] = int(cfg['kraken_exporter']['timeout'])
+        if cfg['kraken_exporter'].get('api_key'):
+            settings['kraken_exporter']['api_key'] = cfg['kraken_exporter']['api_key']
+        if cfg['kraken_exporter'].get('private_key'):
+            settings['kraken_exporter']['private_key'] = cfg['kraken_exporter']['private_key']
 
 
 class KrakenCollector:
     rates = {}
-    symbols = []
+    accounts = {}
+    hasApiCredentials = False
 
-    def _translate(self, currency):
-        r = currency
-        if currency == 'DASH':
-            r = 'DSH'
-        if currency == 'XBT':
-            r = 'BTC'
-        if currency == 'DOGE':
-            r = 'XDG'
-        if currency == 'STR':
-            r = 'XLM'
-        return r
+    def __init__(self):
+        self.kraken = ccxt.kraken()
+        if (settings['kraken_exporter'].get('api_key') and (settings['kraken_exporter'].get('private_key'))):
+            self.kraken.apiKey = settings['kraken_exporter'].get('api_key')
+            self.kraken.secret = settings['kraken_exporter'].get('private_key')
+            self.hasApiCredentials = True
 
-    def _getSymbols(self):
+    def _getTickers(self):
         """
-        Gets the list of symbols.
+        Gets the price ticker.
         """
-        path = "/0/public/AssetPairs"
-        r = requests.get(
-            settings['kraken_exporter']['url'] + path,
-            verify=True,
-            timeout=settings['kraken_exporter']['timeout']
-        )
-        if r and r.status_code == 200 and r.json().get('result'):
-            symbols = r.json()['result']
-            for symbol in symbols:
-                if symbols[symbol]['altname'].endswith(('.d')):
-                    continue
-                gather_symbol = symbols[symbol]['altname'].upper()
-                if gather_symbol not in self.symbols:
-                    self.symbols.append(gather_symbol)
-        else:
-            log.warning('Could not retrieve symbols. Response follows.')
-            log.warning(r.headers)
-            log.warning(r.json())
+        self.kraken.loadMarkets(True)
 
-        log.debug('Found the following symbols: {}'.format(self.symbols))
+        tickers = self.kraken.fetch_tickers()
 
-    def _getExchangeRates(self):
-        self._getSymbols()
-        if self.symbols:
-            pairs_string = ','.join(self.symbols)
-            path = "/0/public/Ticker"
+        for ticker in tickers:
+            currencies = ticker.split('/')
+            pair = {
+                'source_currency': currencies[0],
+                'target_currency': currencies[1],
+                'value': float(tickers[ticker]['last']),
+            }
 
-            log.debug('Pairs: {}'.format(pairs_string))
-            r = None
-            try:
-                r = requests.get(
-                    settings['kraken_exporter']['url'] + path,
-                    params={'pair': pairs_string},
-                    verify=True,
-                    timeout=settings['kraken_exporter']['timeout']
-                )
-            except (
-                requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout,
-                requests.packages.urllib3.exceptions.ReadTimeoutError
-            ) as e:
-                log.warning(e)
+            self.rates.update({
+                '{}'.format(ticker): pair
+            })
 
-            if r:
-                if r.status_code == 200 and r.json().get('result'):
-                    tickers = r.json()['result']
-                    for ticker in tickers:
-                        pair = {
-                            'source_currency': self._translate(ticker[0:3]),
-                            'target_currency': self._translate(ticker[-3:]),
-                            'value': float(tickers[ticker]['c'][0]),
-                        }
-
-                        if ticker.startswith('X') and len(ticker) == 8:
-                            pair['source_currency'] = self._translate(ticker[1:4])
-
-                        self.rates.update({
-                            '{}'.format(ticker): pair
-                        })
-                else:
-                    log.warning('Could not retrieve ticker data. Response follows.')
-                    log.warning(r.headers)
-                    log.warning(r.text)
         log.debug('Found the following ticker rates: {}'.format(self.rates))
+
+    def _getAccounts(self):
+        if self.hasApiCredentials:
+            accounts = self.kraken.fetch_balance()
+            if accounts.get('free'):
+                for currency in accounts['free']:
+                    if not self.accounts.get(currency):
+                        self.accounts.update({currency: {}})
+                    self.accounts[currency].update({'free': accounts['free'][currency]})
+            if accounts.get('used'):
+                for currency in accounts['used']:
+                    if not self.accounts.get(currency):
+                        self.accounts.update({currency: {}})
+                    self.accounts[currency].update({'used': accounts['used'][currency]})
+
+        log.debug('Found the following accounts: {}'.format(self.accounts))
 
     def collect(self):
         metrics = {
@@ -144,8 +113,13 @@ class KrakenCollector:
                 'Current exchange rates',
                 labels=['source_currency', 'target_currency', 'exchange']
             ),
+            'account_balance': GaugeMetricFamily(
+                'account_balance',
+                'Account Balance',
+                labels=['source_currency', 'currency', 'account', 'type']
+            ),
         }
-        self._getExchangeRates()
+        self._getTickers()
         for rate in self.rates:
             metrics['exchange_rate'].add_metric(
                 value=self.rates[rate]['value'],
@@ -155,6 +129,20 @@ class KrakenCollector:
                     'kraken'
                 ]
             )
+
+        self._getAccounts()
+        for currency in self.accounts:
+            for account_type in self.accounts[currency]:  # free / used
+                if (self.accounts[currency][account_type] > 0):
+                    metrics['account_balance'].add_metric(
+                        value=(self.accounts[currency][account_type]),
+                        labels=[
+                            currency,
+                            currency,
+                            account_type,
+                            'kraken'
+                        ]
+                    )
 
         for m in metrics.values():
             yield m
