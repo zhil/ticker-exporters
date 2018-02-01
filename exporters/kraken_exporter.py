@@ -24,12 +24,10 @@ def _settings():
         'kraken_exporter': {
             'prom_folder': '/var/lib/node_exporter',
             'interval': 60,
+            'api_key': None,
+            'api_secret': None,
             'export': 'text',
             'listen_port': 9303,
-            'url': 'https://api.kraken.com',
-            'timeout': 5,
-            'api_key': '',
-            'api_secret': '',
         },
     }
     config_file = '/etc/kraken_exporter/kraken_exporter.yaml'
@@ -42,18 +40,14 @@ def _settings():
             settings['kraken_exporter']['prom_folder'] = cfg['kraken_exporter']['prom_folder']
         if cfg['kraken_exporter'].get('interval'):
             settings['kraken_exporter']['interval'] = cfg['kraken_exporter']['interval']
-        if cfg['kraken_exporter'].get('url'):
-            settings['kraken_exporter']['url'] = cfg['kraken_exporter']['url']
-        if cfg['kraken_exporter'].get('export') in ['text', 'http']:
-            settings['kraken_exporter']['export'] = cfg['kraken_exporter']['export']
-        if cfg['kraken_exporter'].get('listen_port'):
-            settings['kraken_exporter']['listen_port'] = cfg['kraken_exporter']['listen_port']
-        if cfg['kraken_exporter'].get('timeout'):
-            settings['kraken_exporter']['timeout'] = int(cfg['kraken_exporter']['timeout'])
         if cfg['kraken_exporter'].get('api_key'):
             settings['kraken_exporter']['api_key'] = cfg['kraken_exporter']['api_key']
         if cfg['kraken_exporter'].get('private_key'):
             settings['kraken_exporter']['private_key'] = cfg['kraken_exporter']['private_key']
+        if cfg['kraken_exporter'].get('export') in ['text', 'http']:
+            settings['kraken_exporter']['export'] = cfg['kraken_exporter']['export']
+        if cfg['kraken_exporter'].get('listen_port'):
+            settings['kraken_exporter']['listen_port'] = cfg['kraken_exporter']['listen_port']
 
 
 class KrakenCollector:
@@ -93,6 +87,7 @@ class KrakenCollector:
     def _getAccounts(self):
         if self.hasApiCredentials:
             accounts = self.kraken.fetch_balance()
+            self.accounts = {}
             if accounts.get('free'):
                 for currency in accounts['free']:
                     if not self.accounts.get(currency):
