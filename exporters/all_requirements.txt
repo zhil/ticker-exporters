@@ -1,5 +1,4 @@
 gdax>=1.0.6
-poloniex>=0.4.7
 prometheus-client>=0.0.21
 python-quoine>=0.1.2
 PyYAML>=3.11

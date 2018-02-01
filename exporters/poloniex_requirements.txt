@@ -1,4 +1,4 @@
-poloniex>=0.4.7
 PyYAML>=3.11
 requests>=2.13.0
 prometheus-client>=0.0.21
+ccxt>=1.10.909

@@ -26,7 +26,7 @@ Make sure that the API keys you configure are **read only** keys!
 ### Both Account Balance and Ticker Data
 *   [BitFinex](https://www.bitfinex.com) - API credentials required for account balance
 *   [Quoine](https://www.quoine.com) (with the two brands [Quoinex](https://trade.quoinex.com) and [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
-*   [Poloniex](https://poloniex.com) - API credentials required for account balance - **WARNING!** The library used is [poloniex](https://github.com/s4w3d0ff/python-poloniex). This library isn't available over PyPi.
+*   [Poloniex](https://poloniex.com) - API credentials required for account balance
 *   [Binance](https://www.binance.com) - API credentials are required for both account balance and ticker data
 *   [Kraken](https://www.kraken.com) - API credentials are required for account balance
 
@@ -170,7 +170,6 @@ poloniex_exporter:
   interval: '60'
   export: 'text'
   listen_port: 9311
-  timeout: '30'
   api_key: 'my_api_key'
   api_secret: 'my_api_secret'
 quoine_exporter:
@@ -192,6 +191,15 @@ stellar_exporter:
   listen_port: 9308
   accounts: ['GCO2IP3MJNUOKS4PUDI4C7LGGMQDJGXG3COYX3WSB4HHNAHKYV5YL3VC']
 ```
+
+## Known Issues
+### `nonce` Related Errors
+Example:
+```
+ccxt.base.errors.ExchangeNotAvailable: poloniex {"error":"Nonce must be greater than 1517467430395943. You provided 1517467439568."}
+```
+Solution:
+Generate a new API key
 
 ## Donations
 *   ETH: 0x90833394dB1b53f08B9D97dab8BEFf69FCf3bA49
