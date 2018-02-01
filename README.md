@@ -63,11 +63,6 @@ The following options are supported by all exporters:
 *   `export` (string) - switch for `text`/`html` - use `node_exporter` to collect the metrics or open a port for http connection from prometheus
 *   `listen_port` (integer / string) - the TCP port to open, if `export` has been set to `text`
 
-Most exporters also support an `url` (string) option. Exceptions are:
-*   `quoine_exporter` - there are two urls used, one for Quoinex and one for Qryptos. These URLs are hard coded.
-*   `binance_exporter` - the library (python-binance) provides the URL
-*   `poloniex_exporter` - the library (poloniex) provides the URL
-
 ### Additional Options Specific for Each Exporter
 #### `abucoins_exporter`
 This is listed separately, since the API credentials are not yet used.
@@ -102,9 +97,6 @@ etherscan_exporter:
       short: 'XNN'
       decimals: 18
 ```
-
-#### `kraken_exporter`
-*   `timeout` (integer / string) - timeout in seconds for the requests to the API
 
 #### `ripple_exporter` + `stellar_exporter`
 *   `addresses` (list of strings) - the list of ETH/XLM addresses for which to collect the balance
@@ -171,8 +163,6 @@ kraken_exporter:
   interval: '60'
   export: 'text'
   listen_port: 9310
-  url: 'https://api.kraken.com'
-  timeout: '30'
   api_key: 'my_api_key'
   private_key: 'my_private_key'
 poloniex_exporter:
