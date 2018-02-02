@@ -5,10 +5,9 @@ import time
 import os
 import yaml
 import sys
-import gdax
 import requests
 import json
-from operator import itemgetter
+import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
 
@@ -25,6 +24,8 @@ def _settings():
         'gdax_exporter': {
             'prom_folder': '/var/lib/node_exporter',
             'interval': 60,
+            'api_key': None,
+            'api_secret': None,
             'export': 'text',
             'listen_port': 9302,
         },
@@ -39,6 +40,10 @@ def _settings():
             settings['gdax_exporter']['prom_folder'] = cfg['gdax_exporter']['prom_folder']
         if cfg['gdax_exporter'].get('interval'):
             settings['gdax_exporter']['interval'] = cfg['gdax_exporter']['interval']
+        if cfg['gdax_exporter'].get('api_key'):
+            settings['gdax_exporter']['api_key'] = cfg['gdax_exporter']['api_key']
+        if cfg['gdax_exporter'].get('api_secret'):
+            settings['gdax_exporter']['api_secret'] = cfg['gdax_exporter']['api_secret']
         if cfg['gdax_exporter'].get('export') in ['text', 'http']:
             settings['gdax_exporter']['export'] = cfg['gdax_exporter']['export']
         if cfg['gdax_exporter'].get('listen_port'):
@@ -47,70 +52,110 @@ def _settings():
 
 class GdaxCollector:
     rates = {}
+    accounts = {}
+    hasApiCredentials = False
 
-    def _getExchangeRates(self):
-        try:
-            pc = gdax.PublicClient()
-        except (
-            requests.exceptions.ConnectionError,
-            requests.exceptions.ReadTimeout,
-            requests.packages.urllib3.exceptions.ReadTimeoutError
-        ) as e:
-            log.warning(e)
-            pc = None
-        if pc:
-            products = pc.get_products()
-            for product in products:
-                time.sleep(1)  # We don't want to spam the API
-                try:
-                    product_trades = pc.get_product_trades(product_id=product['id'])
-                except (
-                    json.decoder.JSONDecodeError
-                ) as e:
-                    log.warning('Could not get the ticker data for {}. The exception follows.'.format(product))
-                    log.warning(e)
-                    product_trades = None
-                if isinstance(product_trades, list) and product_trades:
-                    latest_trade = sorted(product_trades, key=itemgetter('trade_id'))[-1]
-                    self.rates.update({
-                        '{}-{}'.format(product['base_currency'], product['quote_currency']): {
-                            'base_currency': product['base_currency'],
-                            'quote_currency': product['quote_currency'],
-                            'value': float(latest_trade['price']),
-                        }
-                    })
-                else:
-                    log.warning('Received invalid response. The content follows.')
-                    log.warning(product_trades)
-            pc = None
+    def __init__(self):
+        self.gdax = ccxt.gdax({'nonce': ccxt.gdax.milliseconds})
+        if (settings['gdax_exporter'].get('api_key') and (settings['gdax_exporter'].get('api_secret'))):
+            self.gdax.apiKey = settings['gdax_exporter'].get('api_key')
+            self.gdax.secret = settings['gdax_exporter'].get('api_secret')
+            self.hasApiCredentials = True
+
+    def _getTickers(self):
+        """
+        Gets the price ticker.
+        """
+        self.gdax.loadMarkets(True)
+
+        if self.gdax.has['fetchTickers']:
+            tickers = self.gdax.fetch_tickers()
+        else:
+            tickers = {}
+            for symbol in self.gdax.symbols:
+                tickers.update({
+                    symbol: {
+                        'last': self.gdax.fetch_ticker(symbol)['last']
+                    }
+                })
+                time.sleep(1)  # don't hit the rate limit
+
+        for ticker in tickers:
+            currencies = ticker.split('/')
+            pair = {
+                'source_currency': currencies[0],
+                'target_currency': currencies[1],
+                'value': float(tickers[ticker]['last']),
+            }
+
+            self.rates.update({
+                '{}'.format(ticker): pair
+            })
+
+        log.debug('Found the following ticker rates: {}'.format(self.rates))
+
+    def _getAccounts(self):
+        if self.hasApiCredentials:
+            accounts = self.gdax.fetch_balance()
+            self.accounts = {}
+            if accounts.get('free'):
+                for currency in accounts['free']:
+                    if not self.accounts.get(currency):
+                        self.accounts.update({currency: {}})
+                    self.accounts[currency].update({'free': accounts['free'][currency]})
+            if accounts.get('used'):
+                for currency in accounts['used']:
+                    if not self.accounts.get(currency):
+                        self.accounts.update({currency: {}})
+                    self.accounts[currency].update({'used': accounts['used'][currency]})
+
+        log.debug('Found the following accounts: {}'.format(self.accounts))
 
     def collect(self):
-        self._getExchangeRates()
-        if self.rates:
-            metrics = {
-                'exchange_rate': GaugeMetricFamily(
-                    'exchange_rate',
-                    'Current exchange rates',
-                    labels=['source_currency', 'target_currency', 'exchange']
-                ),
-            }
-            for rate in self.rates:
-                metrics['exchange_rate'].add_metric(
-                    value=self.rates[rate]['value'],
-                    labels=[
-                        self.rates[rate]['base_currency'],
-                        self.rates[rate]['quote_currency'],
-                        'gdax'
-                    ]
-                )
+        metrics = {
+            'exchange_rate': GaugeMetricFamily(
+                'exchange_rate',
+                'Current exchange rates',
+                labels=['source_currency', 'target_currency', 'exchange']
+            ),
+            'account_balance': GaugeMetricFamily(
+                'account_balance',
+                'Account Balance',
+                labels=['source_currency', 'currency', 'account', 'type']
+            ),
+        }
+        self._getTickers()
+        for rate in self.rates:
+            metrics['exchange_rate'].add_metric(
+                value=self.rates[rate]['value'],
+                labels=[
+                    self.rates[rate]['source_currency'],
+                    self.rates[rate]['target_currency'],
+                    'gdax'
+                ]
+            )
 
-            for m in metrics.values():
-                yield m
+        self._getAccounts()
+        for currency in self.accounts:
+            for account_type in self.accounts[currency]:  # free / used
+                if (self.accounts[currency][account_type] > 0):
+                    metrics['account_balance'].add_metric(
+                        value=(self.accounts[currency][account_type]),
+                        labels=[
+                            currency,
+                            currency,
+                            account_type,
+                            'gdax'
+                        ]
+                    )
+
+        for m in metrics.values():
+            yield m
 
 
 def _collect_to_text():
+    e = GdaxCollector()
     while True:
-        e = GdaxCollector()
         write_to_textfile('{0}/gdax_exporter.prom'.format(settings['gdax_exporter']['prom_folder']), e)
         time.sleep(int(settings['gdax_exporter']['interval']))
 

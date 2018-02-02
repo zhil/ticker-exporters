@@ -1,4 +1,4 @@
 PyYAML>=3.11
 requests>=2.13.0
 prometheus-client>=0.0.21
-gdax>=1.0.6
+ccxt>=1.10.909

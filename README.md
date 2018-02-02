@@ -6,7 +6,7 @@ Merge/Pull requests are welcomed, I reserve however the right to accept/deny the
 
 This project is hosted on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters) and mirrored on [github.com/tlex/ticker-exporters](https://github.com/tlex/ticker-exporters).
 
-> **Note**! The development is only done on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters). Please open your issues / merge requests there.
+> **Note**! The development is done only on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters). Please open your issues / merge requests there.
 
 ## Supported:
 > Note! Some exporters require API credentials.
@@ -19,7 +19,6 @@ Make sure that the API keys you configure are **read only** keys!
 *   [Stellar / XLM](https://www.stellar.org/account-viewer/)
 
 ### Ticker Data Only:
-*   [GDAX](https://www.gdax.com)
 *   [Abucoins](https://abucoins.com/)
 *   [BitStamp](https://www.bitstamp.net)
 
@@ -29,11 +28,12 @@ Make sure that the API keys you configure are **read only** keys!
 *   [Poloniex](https://poloniex.com) - API credentials required for account balance
 *   [Binance](https://www.binance.com) - API credentials are required for both account balance and ticker data
 *   [Kraken](https://www.kraken.com) - API credentials are required for account balance
+*   [GDAX](https://www.gdax.com) - API credentials are required for account balance
 
 ## Requirements
 *   python3 (I use 3.5.2 on Ubuntu 16.04)
 *   pip3 (I use 8.1.1, since it was installed with `apt`)
-*   every exporter has a `*_requirements.txt` file. Install the modules with `pip3 install -r file__requirements.txt`. Alternatively, you can install all the requirements: `pip3 install -r all_requirements.txt`.
+*   every exporter has a `*_requirements.txt` file. Install the modules with `pip3 install -r exporter_requirements.txt`. Alternatively, you can install all the requirements: `pip3 install -r all_requirements.txt`.
 
 ## Configuration
 All the exporters try to load the configuration file located in `/etc/*_exporter/*.exporter.yaml`. For example, the
@@ -69,7 +69,7 @@ This is listed separately, since the API credentials are not yet used.
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
-#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter`
+#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter` + `gdax_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
@@ -158,6 +158,8 @@ gdax_exporter:
   interval: '5'
   export: 'text'
   listen_port: 9306
+  api_key: 'my_api_key'
+  private_key: 'my_private_key'
 kraken_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
