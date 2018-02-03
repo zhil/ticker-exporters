@@ -23,7 +23,8 @@ Make sure that the API keys you configure are **read only** keys!
 
 ### Both Account Balance and Ticker Data
 *   [BitFinex](https://www.bitfinex.com) - API credentials are required for account balance
-*   [Quoine](https://www.quoine.com) (with the two brands [Quoinex](https://trade.quoinex.com) and [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
+*   [Quoinex](https://trade.quoinex.com)  - API credentials required for account balance
+*   [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
 *   [Poloniex](https://poloniex.com) - API credentials are required for account balance
 *   [Binance](https://www.binance.com) - API credentials are required for account balance
 *   [Kraken](https://www.kraken.com) - API credentials are required for account balance
@@ -36,7 +37,7 @@ Make sure that the API keys you configure are **read only** keys!
 *   every exporter has a `*_requirements.txt` file. Install the modules with `pip3 install -r exporter_requirements.txt`. Alternatively, you can install all the requirements: `pip3 install -r all_requirements.txt`.
 
 ## Configuration
-All the exporters try to load the configuration file located in `/etc/*_exporter/*.exporter.yaml`. For example, the
+All the exporters try to load the configuration file located in `/etc/*_exporter/*_exporter.yaml`. For example, the
 `bitfinex_exporter` will look for `/etc/bitfinex_exporter/bitfinex_exporter.yaml`
 
 ### Configuration File Structure
@@ -69,7 +70,8 @@ This is listed separately, since the API credentials are not yet used.
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
-#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter` + `gdax_exporter` + `bitstamp_exporter`
+#### Exchange Exporters
+Supported: `bitfinex`, `poloniex`, `quoinex`, `binance`, `gdax`, `bitstamp`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
@@ -174,11 +176,18 @@ poloniex_exporter:
   listen_port: 9311
   api_key: 'my_api_key'
   api_secret: 'my_api_secret'
-quoine_exporter:
+qryptos_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '10'
   export: 'text'
   listen_port: 9314
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
+quoinex_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '10'
+  export: 'text'
+  listen_port: 9319
   api_key: 'my_api_key'
   api_secret: 'my_api_secret'
 ripple_exporter:
