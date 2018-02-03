@@ -7,7 +7,7 @@ import yaml
 import sys
 import requests
 import json
-from binance.client import Client as Binance
+import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
 
@@ -17,17 +17,17 @@ logging.basicConfig(stream=sys.stdout, level=os.environ.get("LOGLEVEL", "INFO"))
 settings = {}
 
 
-def settings():
+def _settings():
     global settings
 
     settings = {
         'binance_exporter': {
             'prom_folder': '/var/lib/node_exporter',
-            'interval': 30,
+            'interval': 60,
+            'api_key': None,
+            'api_secret': None,
             'export': 'text',
             'listen_port': 9308,
-            'api_key': '',
-            'api_secret': '',
         },
     }
     config_file = '/etc/binance_exporter/binance_exporter.yaml'
@@ -40,65 +40,99 @@ def settings():
             settings['binance_exporter']['prom_folder'] = cfg['binance_exporter']['prom_folder']
         if cfg['binance_exporter'].get('interval'):
             settings['binance_exporter']['interval'] = cfg['binance_exporter']['interval']
-        if cfg['binance_exporter'].get('export') in ['text', 'http']:
-            settings['binance_exporter']['export'] = cfg['binance_exporter']['export']
-        if cfg['binance_exporter'].get('listen_port'):
-            settings['binance_exporter']['listen_port'] = cfg['binance_exporter']['listen_port']
         if cfg['binance_exporter'].get('api_key'):
             settings['binance_exporter']['api_key'] = cfg['binance_exporter']['api_key']
         if cfg['binance_exporter'].get('api_secret'):
             settings['binance_exporter']['api_secret'] = cfg['binance_exporter']['api_secret']
+        if cfg['binance_exporter'].get('export') in ['text', 'http']:
+            settings['binance_exporter']['export'] = cfg['binance_exporter']['export']
+        if cfg['binance_exporter'].get('listen_port'):
+            settings['binance_exporter']['listen_port'] = cfg['binance_exporter']['listen_port']
 
 
 class BinanceCollector:
     rates = {}
     accounts = {}
+    hasApiCredentials = False
+    markets = None
 
     def __init__(self):
-        self.client = Binance(settings['binance_exporter']['api_key'], settings['binance_exporter']['api_secret'])
+        self.binance = ccxt.binance({'nonce': ccxt.binance.milliseconds})
+        if (settings['binance_exporter'].get('api_key') and (settings['binance_exporter'].get('api_secret'))):
+            self.binance.apiKey = settings['binance_exporter'].get('api_key')
+            self.binance.secret = settings['binance_exporter'].get('api_secret')
+            self.hasApiCredentials = True
 
-    def _translate(self, currency):
-        r = currency
-        if currency == 'DASH':
-            r = 'DSH'
-        if currency == 'XBT':
-            r = 'BTC'
-        if currency == 'DOGE':
-            r = 'XDG'
-        if currency == 'STR':
-            r = 'XLM'
-        return r
+    def _getTickers(self):
+        """
+        Gets the price ticker.
+        """
+        log.debug('Loading Markets')
+        self.binance.loadMarkets(True)
 
-    def _getExchangeRates(self):
-        for ticker in self.client.get_all_tickers():
-            pair = ticker.get('symbol')
-            value = ticker.get('price')
-            source_currency = pair[:-3]
-            target_currency = pair[-3:]
-            if pair[-4:] == 'USDT':
-                source_currency = pair[:-4]
-                target_currency = pair[-4:]
-            self.rates.update({pair: {
-                'source_currency': self._translate(source_currency),
-                'target_currency': self._translate(target_currency),
-                'value': float(value),
-            }})
+        if self.binance.has['fetchTickers']:
+            log.debug('Loading Tickers')
+            tickers = self.binance.fetch_tickers()
+        elif self.binance.has['fetchCurrencies']:
+            tickers = {}
+            for symbol in self.binance.symbols:
+                log.debug('Loading Symbol {}'.format(symbol))
+                try:
+                    tickers.update({
+                        symbol: {
+                            'last': self.binance.fetch_ticker(symbol)['last']
+                        }
+                    })
+                except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                    log.warning('{}'.format(e))
+                time.sleep(1)  # don't hit the rate limit
+        else:
+            tickers = {}
+            if not self.markets:
+                log.debug('Fetching markets')
+                self.markets = self.binance.fetch_markets()
+            for market in self.markets:
+                symbol = market.get('symbol')
+                log.debug('Loading Symbol {}'.format(symbol))
+                try:
+                    tickers.update({
+                        symbol: {
+                            'last': self.binance.fetch_ticker(symbol)['last']
+                        }
+                    })
+                except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                    log.warning('{}'.format(e))
+                time.sleep(1)  # don't hit the rate limit
+
+        for ticker in tickers:
+            currencies = ticker.split('/')
+            if len(currencies) == 2:
+                pair = {
+                    'source_currency': currencies[0],
+                    'target_currency': currencies[1],
+                    'value': float(tickers[ticker]['last']),
+                }
+
+                self.rates.update({
+                    '{}'.format(ticker): pair
+                })
 
         log.debug('Found the following ticker rates: {}'.format(self.rates))
 
     def _getAccounts(self):
-        accounts = self.client.get_account()
-        for account in accounts.get('balances'):
-            """ Only show the accounts that actually have a value """
-            if (
-                float(account['free']) > 0
-                or float(account['locked']) > 0
-            ):
-                self.accounts.update({
-                    account['asset']: float(account['free'])
-                })
-            elif self.accounts.get(account['asset']):
-                del self.accounts[account['asset']]
+        if self.hasApiCredentials:
+            accounts = self.binance.fetch_balance()
+            self.accounts = {}
+            if accounts.get('free'):
+                for currency in accounts['free']:
+                    if not self.accounts.get(currency):
+                        self.accounts.update({currency: {}})
+                    self.accounts[currency].update({'free': accounts['free'][currency]})
+            if accounts.get('used'):
+                for currency in accounts['used']:
+                    if not self.accounts.get(currency):
+                        self.accounts.update({currency: {}})
+                    self.accounts[currency].update({'used': accounts['used'][currency]})
 
         log.debug('Found the following accounts: {}'.format(self.accounts))
 
@@ -115,27 +149,31 @@ class BinanceCollector:
                 labels=['source_currency', 'currency', 'account', 'type']
             ),
         }
-        self._getExchangeRates()
+        self._getTickers()
         for rate in self.rates:
             metrics['exchange_rate'].add_metric(
                 value=self.rates[rate]['value'],
                 labels=[
                     self.rates[rate]['source_currency'],
                     self.rates[rate]['target_currency'],
-                    'binance',
+                    'binance'
                 ]
             )
+
         self._getAccounts()
         for currency in self.accounts:
-            metrics['account_balance'].add_metric(
-                value=self.accounts[currency],
-                labels=[
-                    currency,
-                    currency,
-                    'binance',
-                    'binance',
-                ]
-            )
+            for account_type in self.accounts[currency]:  # free / used
+                if (self.accounts[currency][account_type] > 0):
+                    metrics['account_balance'].add_metric(
+                        value=(self.accounts[currency][account_type]),
+                        labels=[
+                            currency,
+                            currency,
+                            account_type,
+                            'binance'
+                        ]
+                    )
+
         for m in metrics.values():
             yield m
 
@@ -155,7 +193,7 @@ def _collect_to_http():
 
 
 if __name__ == '__main__':
-    settings()
+    _settings()
     log.debug('Loaded settings: {}'.format(settings))
     if settings['binance_exporter']['export'] == 'text':
         _collect_to_text()

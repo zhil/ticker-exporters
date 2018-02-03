@@ -22,10 +22,10 @@ Make sure that the API keys you configure are **read only** keys!
 *   [Abucoins](https://abucoins.com/)
 
 ### Both Account Balance and Ticker Data
-*   [BitFinex](https://www.bitfinex.com) - API credentials required for account balance
+*   [BitFinex](https://www.bitfinex.com) - API credentials are required for account balance
 *   [Quoine](https://www.quoine.com) (with the two brands [Quoinex](https://trade.quoinex.com) and [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
-*   [Poloniex](https://poloniex.com) - API credentials required for account balance
-*   [Binance](https://www.binance.com) - API credentials are required for both account balance and ticker data
+*   [Poloniex](https://poloniex.com) - API credentials are required for account balance
+*   [Binance](https://www.binance.com) - API credentials are required for account balance
 *   [Kraken](https://www.kraken.com) - API credentials are required for account balance
 *   [GDAX](https://www.gdax.com) - API credentials are required for account balance
 *   [BitStamp](https://www.bitstamp.net) - API credentials are required for account balance
@@ -133,17 +133,17 @@ binance_exporter:
 bitfinex_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
-  api_key: 'my_api_key'
-  api_secret: 'my_api_secret'
   export: 'text'
   listen_port: 9309
-  url: 'https://api.bitfinex.com'
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
 bitstamp_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '5'
   export: 'text'
   listen_port: 9313
-  url: 'https://www.bitstamp.net/api'
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
 etherscan_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
