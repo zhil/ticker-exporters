@@ -20,7 +20,6 @@ Make sure that the API keys you configure are **read only** keys!
 
 ### Ticker Data Only:
 *   [Abucoins](https://abucoins.com/)
-*   [BitStamp](https://www.bitstamp.net)
 
 ### Both Account Balance and Ticker Data
 *   [BitFinex](https://www.bitfinex.com) - API credentials required for account balance
@@ -29,6 +28,7 @@ Make sure that the API keys you configure are **read only** keys!
 *   [Binance](https://www.binance.com) - API credentials are required for both account balance and ticker data
 *   [Kraken](https://www.kraken.com) - API credentials are required for account balance
 *   [GDAX](https://www.gdax.com) - API credentials are required for account balance
+*   [BitStamp](https://www.bitstamp.net) - API credentials are required for account balance
 
 ## Requirements
 *   python3 (I use 3.5.2 on Ubuntu 16.04)
@@ -69,7 +69,7 @@ This is listed separately, since the API credentials are not yet used.
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
-#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter` + `gdax_exporter`
+#### `bitfinex_exporter` + `poloniex_exporter` + `quoine_exporter` + `binance_exporter` + `gdax_exporter` + `bitstamp_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
