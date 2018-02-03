@@ -24,7 +24,7 @@ Make sure that the API keys you configure are **read only** keys!
 ### Both Account Balance and Ticker Data
 *   [BitFinex](https://www.bitfinex.com) - API credentials are required for account balance
 *   [Quoinex](https://trade.quoinex.com)  - API credentials required for account balance
-*   [Qryptos](https://trade.qryptos.com)) - API credentials required for account balance
+*   [Qryptos](https://trade.qryptos.com) - API credentials required for account balance
 *   [Poloniex](https://poloniex.com) - API credentials are required for account balance
 *   [Binance](https://www.binance.com) - API credentials are required for account balance
 *   [Kraken](https://www.kraken.com) - API credentials are required for account balance
