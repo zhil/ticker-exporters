@@ -22,14 +22,15 @@ Make sure that the API keys you configure are **read only** keys!
 *   [Abucoins](https://abucoins.com/)
 
 ### Both Account Balance and Ticker Data
-*   [BitFinex](https://www.bitfinex.com) - API credentials are required for account balance
-*   [Quoinex](https://trade.quoinex.com)  - API credentials required for account balance
-*   [Qryptos](https://trade.qryptos.com) - API credentials required for account balance
-*   [Poloniex](https://poloniex.com) - API credentials are required for account balance
-*   [Binance](https://www.binance.com) - API credentials are required for account balance
-*   [Kraken](https://www.kraken.com) - API credentials are required for account balance
-*   [GDAX](https://www.gdax.com) - API credentials are required for account balance
-*   [BitStamp](https://www.bitstamp.net) - API credentials are required for account balance
+API credentials are required for account balance
+*   [Binance](https://www.binance.com)
+*   [BitFinex](https://www.bitfinex.com)
+*   [BitStamp](https://www.bitstamp.net)
+*   [GDAX](https://www.gdax.com)
+*   [Kraken](https://www.kraken.com)
+*   [Poloniex](https://poloniex.com)
+*   [Qryptos](https://trade.qryptos.com)
+*   [Quoinex](https://trade.quoinex.com)
 
 ## Requirements
 *   python3 (I use 3.5.2 on Ubuntu 16.04)
@@ -71,13 +72,9 @@ This is listed separately, since the API credentials are not yet used.
 *   `api_secret` (string) - the API secret from the exchange
 
 #### Exchange Exporters
-Supported: `bitfinex`, `poloniex`, `quoinex`, `binance`, `gdax`, `bitstamp`
+Supported: `bitfinex`, `poloniex`, `quoinex`, `binance`, `gdax`, `bitstamp`, `kraken_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
-
-#### `kraken_exporter`
-*   `api_key` (string) - the API key from the exchange
-*   `private_key` (string) - the API private key from the exchange
 
 #### `etherscan_exporter`
 *   `api_key` (string) - the etherscan API key
@@ -168,7 +165,7 @@ kraken_exporter:
   export: 'text'
   listen_port: 9310
   api_key: 'my_api_key'
-  private_key: 'my_private_key'
+  api_secret: 'my_private_key'
 poloniex_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'

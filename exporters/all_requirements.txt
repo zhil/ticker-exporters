@@ -2,4 +2,4 @@ prometheus-client>=0.0.21
 PyYAML>=3.11
 requests>=2.13.0
 stellar-base>=0.1.7.3
-ccxt>=1.10.909
+ccxt>=1.10.991
