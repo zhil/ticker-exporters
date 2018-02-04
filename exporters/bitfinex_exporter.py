@@ -5,8 +5,6 @@ import time
 import os
 import yaml
 import sys
-import requests
-import json
 import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
@@ -54,42 +52,86 @@ class BitfinexCollector:
     rates = {}
     accounts = {}
     hasApiCredentials = False
+    markets = None
 
     def __init__(self):
-        self.bitfinex = ccxt.bitfinex()
+        self.bitfinex = ccxt.bitfinex({'nonce': ccxt.bitfinex.milliseconds})
         if (settings['bitfinex_exporter'].get('api_key') and (settings['bitfinex_exporter'].get('api_secret'))):
             self.bitfinex.apiKey = settings['bitfinex_exporter'].get('api_key')
             self.bitfinex.secret = settings['bitfinex_exporter'].get('api_secret')
             self.hasApiCredentials = True
-        else:
-            log.warning('API credentials not found.')
 
     def _getTickers(self):
         """
         Gets the price ticker.
         """
-        self.bitfinex.loadMarkets(True)
+        log.debug('Loading Markets')
+        markets_loaded = False
+        while markets_loaded is False:
+            try:
+                self.bitfinex.loadMarkets(True)
+                markets_loaded = True
+            except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                log.warning('{}'.format(e))
+                time.sleep(1)
 
-        tickers = self.bitfinex.fetch_tickers()
+        if self.bitfinex.has['fetchTickers']:
+            log.debug('Loading Tickers')
+            tickers = self.bitfinex.fetch_tickers()
+        elif self.bitfinex.has['fetchCurrencies']:
+            tickers = {}
+            for symbol in self.bitfinex.symbols:
+                log.debug('Loading Symbol {}'.format(symbol))
+                try:
+                    tickers.update({
+                        symbol: {
+                            'last': self.bitfinex.fetch_ticker(symbol)['last']
+                        }
+                    })
+                except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                    log.warning('{}'.format(e))
+                time.sleep(1)  # don't hit the rate limit
+        else:
+            tickers = {}
+            if not self.markets:
+                log.debug('Fetching markets')
+                self.markets = self.bitfinex.fetch_markets()
+            for market in self.markets:
+                symbol = market.get('symbol')
+                log.debug('Loading Symbol {}'.format(symbol))
+                try:
+                    tickers.update({
+                        symbol: {
+                            'last': self.bitfinex.fetch_ticker(symbol)['last']
+                        }
+                    })
+                except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                    log.warning('{}'.format(e))
+                time.sleep(1)  # don't hit the rate limit
 
         for ticker in tickers:
             currencies = ticker.split('/')
-            pair = {
-                'source_currency': currencies[0],
-                'target_currency': currencies[1],
-                'value': float(tickers[ticker]['last']),
-            }
+            if len(currencies) == 2 and tickers[ticker].get('last'):
+                pair = {
+                    'source_currency': currencies[0],
+                    'target_currency': currencies[1],
+                    'value': float(tickers[ticker]['last']),
+                }
 
-            self.rates.update({
-                '{}'.format(ticker): pair
-            })
+                self.rates.update({
+                    '{}'.format(ticker): pair
+                })
 
         log.debug('Found the following ticker rates: {}'.format(self.rates))
 
     def _getAccounts(self):
         if self.hasApiCredentials:
-            accounts = self.bitfinex.fetch_balance()
-            self.accounts = {}
+            accounts = {}
+            try:
+                accounts = self.bitfinex.fetch_balance()
+                self.accounts = {}
+            except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                log.warning('{}'.format(e))
             if accounts.get('free'):
                 for currency in accounts['free']:
                     if not self.accounts.get(currency):
