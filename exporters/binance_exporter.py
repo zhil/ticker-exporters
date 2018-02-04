@@ -5,8 +5,6 @@ import time
 import os
 import yaml
 import sys
-import requests
-import json
 import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
@@ -68,7 +66,14 @@ class BinanceCollector:
         Gets the price ticker.
         """
         log.debug('Loading Markets')
-        self.binance.loadMarkets(True)
+        markets_loaded = False
+        while markets_loaded is False:
+            try:
+                self.binance.loadMarkets(True)
+                markets_loaded = True
+            except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                log.warning('{}'.format(e))
+                time.sleep(1)
 
         if self.binance.has['fetchTickers']:
             log.debug('Loading Tickers')
@@ -106,7 +111,7 @@ class BinanceCollector:
 
         for ticker in tickers:
             currencies = ticker.split('/')
-            if len(currencies) == 2:
+            if len(currencies) == 2 and tickers[ticker].get('last'):
                 pair = {
                     'source_currency': currencies[0],
                     'target_currency': currencies[1],
@@ -121,8 +126,12 @@ class BinanceCollector:
 
     def _getAccounts(self):
         if self.hasApiCredentials:
-            accounts = self.binance.fetch_balance()
-            self.accounts = {}
+            accounts = {}
+            try:
+                accounts = self.binance.fetch_balance()
+                self.accounts = {}
+            except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                log.warning('{}'.format(e))
             if accounts.get('free'):
                 for currency in accounts['free']:
                     if not self.accounts.get(currency):
