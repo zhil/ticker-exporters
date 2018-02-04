@@ -5,8 +5,6 @@ import time
 import os
 import yaml
 import sys
-import requests
-import json
 import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
@@ -42,8 +40,8 @@ def _settings():
             settings['kraken_exporter']['interval'] = cfg['kraken_exporter']['interval']
         if cfg['kraken_exporter'].get('api_key'):
             settings['kraken_exporter']['api_key'] = cfg['kraken_exporter']['api_key']
-        if cfg['kraken_exporter'].get('private_key'):
-            settings['kraken_exporter']['private_key'] = cfg['kraken_exporter']['private_key']
+        if cfg['kraken_exporter'].get('api_secret'):
+            settings['kraken_exporter']['api_secret'] = cfg['kraken_exporter']['api_secret']
         if cfg['kraken_exporter'].get('export') in ['text', 'http']:
             settings['kraken_exporter']['export'] = cfg['kraken_exporter']['export']
         if cfg['kraken_exporter'].get('listen_port'):
@@ -54,40 +52,86 @@ class KrakenCollector:
     rates = {}
     accounts = {}
     hasApiCredentials = False
+    markets = None
 
     def __init__(self):
-        self.kraken = ccxt.kraken()
-        if (settings['kraken_exporter'].get('api_key') and (settings['kraken_exporter'].get('private_key'))):
+        self.kraken = ccxt.kraken({'nonce': ccxt.kraken.milliseconds})
+        if (settings['kraken_exporter'].get('api_key') and (settings['kraken_exporter'].get('api_secret'))):
             self.kraken.apiKey = settings['kraken_exporter'].get('api_key')
-            self.kraken.secret = settings['kraken_exporter'].get('private_key')
+            self.kraken.secret = settings['kraken_exporter'].get('api_secret')
             self.hasApiCredentials = True
 
     def _getTickers(self):
         """
         Gets the price ticker.
         """
-        self.kraken.loadMarkets(True)
+        log.debug('Loading Markets')
+        markets_loaded = False
+        while markets_loaded is False:
+            try:
+                self.kraken.loadMarkets(True)
+                markets_loaded = True
+            except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                log.warning('{}'.format(e))
+                time.sleep(1)
 
-        tickers = self.kraken.fetch_tickers()
+        if self.kraken.has['fetchTickers']:
+            log.debug('Loading Tickers')
+            tickers = self.kraken.fetch_tickers()
+        elif self.kraken.has['fetchCurrencies']:
+            tickers = {}
+            for symbol in self.kraken.symbols:
+                log.debug('Loading Symbol {}'.format(symbol))
+                try:
+                    tickers.update({
+                        symbol: {
+                            'last': self.kraken.fetch_ticker(symbol)['last']
+                        }
+                    })
+                except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                    log.warning('{}'.format(e))
+                time.sleep(1)  # don't hit the rate limit
+        else:
+            tickers = {}
+            if not self.markets:
+                log.debug('Fetching markets')
+                self.markets = self.kraken.fetch_markets()
+            for market in self.markets:
+                symbol = market.get('symbol')
+                log.debug('Loading Symbol {}'.format(symbol))
+                try:
+                    tickers.update({
+                        symbol: {
+                            'last': self.kraken.fetch_ticker(symbol)['last']
+                        }
+                    })
+                except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                    log.warning('{}'.format(e))
+                time.sleep(1)  # don't hit the rate limit
 
         for ticker in tickers:
             currencies = ticker.split('/')
-            pair = {
-                'source_currency': currencies[0],
-                'target_currency': currencies[1],
-                'value': float(tickers[ticker]['last']),
-            }
+            if len(currencies) == 2 and tickers[ticker].get('last'):
+                pair = {
+                    'source_currency': currencies[0],
+                    'target_currency': currencies[1],
+                    'value': float(tickers[ticker]['last']),
+                }
 
-            self.rates.update({
-                '{}'.format(ticker): pair
-            })
+                self.rates.update({
+                    '{}'.format(ticker): pair
+                })
 
         log.debug('Found the following ticker rates: {}'.format(self.rates))
 
     def _getAccounts(self):
         if self.hasApiCredentials:
-            accounts = self.kraken.fetch_balance()
-            self.accounts = {}
+            accounts = {}
+            try:
+                accounts = self.kraken.fetch_balance()
+                self.accounts = {}
+            except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
+                log.warning('{}'.format(e))
             if accounts.get('free'):
                 for currency in accounts['free']:
                     if not self.accounts.get(currency):
