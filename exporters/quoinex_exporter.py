@@ -5,8 +5,6 @@ import time
 import os
 import yaml
 import sys
-import requests
-import json
 import ccxt
 from prometheus_client import write_to_textfile, start_http_server
 from prometheus_client.core import REGISTRY, GaugeMetricFamily, CounterMetricFamily
