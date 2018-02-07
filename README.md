@@ -8,6 +8,10 @@ This project is hosted on [gitlab.com/crypto-exporters/ticker-exporters](https:/
 
 > **Note**! The development is done only on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters). Please open your issues / merge requests there.
 
+## Screenshots
+<img src="screenshots/prometheus_count_exchange_rates.png" alt="Prometheus count(exchange_rates)" width="200px"/>
+<img src="screenshots/grafana_eth_usd_snapshot.png" alt="Grafana ETH-USD Snapshot" width="200px"/>
+
 ## Supported:
 > Note! Some exporters require API credentials.
 
