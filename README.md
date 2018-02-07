@@ -26,6 +26,7 @@ API credentials are required for account balance
 *   [Binance](https://www.binance.com)
 *   [BitFinex](https://www.bitfinex.com)
 *   [BitStamp](https://www.bitstamp.net)
+*   [CEX.IO](https://cex.io)
 *   [GDAX](https://www.gdax.com)
 *   [Kraken](https://www.kraken.com)
 *   [Poloniex](https://poloniex.com)
@@ -75,6 +76,11 @@ This is listed separately, since the API credentials are not yet used.
 Supported: `bitfinex`, `poloniex`, `quoinex`, `binance`, `gdax`, `bitstamp`, `kraken_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
+
+#### `cex_exporter`
+*   `api_key` (string) - the API key from the exchange
+*   `api_secret` (string) - the API secret from the exchange
+*   `uid` (string) - the UID
 
 #### `etherscan_exporter`
 *   `api_key` (string) - the etherscan API key
@@ -143,6 +149,14 @@ bitstamp_exporter:
   listen_port: 9313
   api_key: 'my_api_key'
   api_secret: 'my_api_secret'
+cex_exporter:
+  prom_folder: '/var/lib/node_exporter'
+  interval: '30'
+  export: 'text'
+  listen_port: 9315
+  api_key: 'my_api_key'
+  api_secret: 'my_api_secret'
+  uid: 'my_cex_uid'
 etherscan_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
@@ -199,6 +213,22 @@ stellar_exporter:
   listen_port: 9308
   accounts: ['GCO2IP3MJNUOKS4PUDI4C7LGGMQDJGXG3COYX3WSB4HHNAHKYV5YL3VC']
 ```
+
+## Default Ports
+All the ports can be configured via the configuration file
+*   abucoins_exporter 9299
+*   bitfinex_exporter 9300
+*   etherscan_exporter 9301
+*   gdax_exporter 9302
+*   kraken_exporter 9303
+*   poloniex_exporter 9304
+*   qryptos_exporter 9305
+*   ripple_exporter 9306
+*   bitstamp_exporter 9307
+*   binance_exporter 9308
+*   stellar_exporter 9309
+*   quoinex_exporter 9310
+*   cex_exporter  9311
 
 ## Known Issues
 ### `nonce` Related Errors
