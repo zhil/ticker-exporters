@@ -216,19 +216,22 @@ stellar_exporter:
 
 ## Default Ports
 All the ports can be configured via the configuration file
-*   abucoins_exporter 9299
-*   bitfinex_exporter 9300
-*   etherscan_exporter 9301
-*   gdax_exporter 9302
-*   kraken_exporter 9303
-*   poloniex_exporter 9304
-*   qryptos_exporter 9305
-*   ripple_exporter 9306
-*   bitstamp_exporter 9307
-*   binance_exporter 9308
-*   stellar_exporter 9309
-*   quoinex_exporter 9310
-*   cex_exporter  9311
+
+| *Exporter*         | *Port* |
+| ------------------ | ------ |
+| abucoins_exporter  | 9299   |
+| bitfinex_exporter  | 9300   |
+| etherscan_exporter | 9301   |
+| gdax_exporter      | 9302   |
+| kraken_exporter    | 9303   |
+| poloniex_exporter  | 9304   |
+| qryptos_exporter   | 9305   |
+| ripple_exporter    | 9306   |
+| bitstamp_exporter  | 9307   |
+| binance_exporter   | 9308   |
+| stellar_exporter   | 9309   |
+| quoinex_exporter   | 9310   |
+| cex_exporter       | 9311   |
 
 ## Known Issues
 ### `nonce` Related Errors
