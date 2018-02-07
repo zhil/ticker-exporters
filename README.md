@@ -4,7 +4,7 @@ Allows exporting ticker and account data, for gathering with [Prometheus](https:
 
 Merge/Pull requests are welcomed, I reserve however the right to accept/deny them.
 
-This project is hosted on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters) and mirrored on [github.com/tlex/ticker-exporters](https://github.com/tlex/ticker-exporters).
+This project is hosted on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters) and mirrored on [github.com/crypto-exporters/ticker-exporters](https://github.com/crypto-exporters/ticker-exporters).
 
 > **Note**! The development is done only on [gitlab.com/crypto-exporters/ticker-exporters](https://gitlab.com/crypto-exporters/ticker-exporters). Please open your issues / merge requests there.
 
