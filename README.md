@@ -32,6 +32,7 @@ API credentials are required for account balance
 *   [BitStamp](https://www.bitstamp.net)
 *   [CEX.IO](https://cex.io)
 *   [GDAX](https://www.gdax.com)
+*   [HitBTC](https://hitbtc.com)
 *   [Kraken](https://www.kraken.com)
 *   [Poloniex](https://poloniex.com)
 *   [Qryptos](https://trade.qryptos.com)
@@ -77,7 +78,7 @@ This is listed separately, since the API credentials are not yet used.
 *   `api_secret` (string) - the API secret from the exchange
 
 #### Exchange Exporters
-Supported: `bitfinex`, `poloniex`, `quoinex`, `binance`, `gdax`, `bitstamp`, `kraken_exporter`
+Supported: `bitfinex`, `poloniex`, `quoinex`, `binance`, `gdax`, `hitbtc`, `bitstamp`, `kraken_exporter`
 *   `api_key` (string) - the API key from the exchange
 *   `api_secret` (string) - the API secret from the exchange
 
@@ -176,7 +177,7 @@ gdax_exporter:
   export: 'text'
   listen_port: 9306
   api_key: 'my_api_key'
-  private_key: 'my_private_key'
+  api_secret: 'my_private_key'
 kraken_exporter:
   prom_folder: '/var/lib/node_exporter'
   interval: '60'
@@ -236,6 +237,7 @@ All the ports can be configured via the configuration file
 | stellar_exporter   | 9309   |
 | quoinex_exporter   | 9310   |
 | cex_exporter       | 9311   |
+| hitbtc_exporter    | 9312   |
 
 ## Known Issues
 ### `nonce` Related Errors
