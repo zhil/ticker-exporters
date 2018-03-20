@@ -25,7 +25,7 @@ def _settings():
             'api_key': None,
             'api_secret': None,
             'export': 'text',
-            'listen_port': 9308,
+            'listen_port': 9311,
             'uid': None,
         },
     }
