@@ -19,56 +19,56 @@ def _settings():
     global settings
 
     settings = {
-        'cex_exporter': {
+        'hitbtc_exporter': {
             'prom_folder': '/var/lib/node_exporter',
             'interval': 60,
             'api_key': None,
             'api_secret': None,
             'export': 'text',
-            'listen_port': 9311,
+            'listen_port': 9312,
             'uid': None,
         },
     }
-    config_file = '/etc/cex_exporter/cex_exporter.yaml'
+    config_file = '/etc/hitbtc_exporter/hitbtc_exporter.yaml'
     cfg = {}
     if os.path.isfile(config_file):
         with open(config_file, 'r') as ymlfile:
             cfg = yaml.load(ymlfile)
-    if cfg.get('cex_exporter'):
-        if cfg['cex_exporter'].get('prom_folder'):
-            settings['cex_exporter']['prom_folder'] = cfg['cex_exporter']['prom_folder']
-        if cfg['cex_exporter'].get('interval'):
-            settings['cex_exporter']['interval'] = cfg['cex_exporter']['interval']
-        if cfg['cex_exporter'].get('api_key'):
-            settings['cex_exporter']['api_key'] = cfg['cex_exporter']['api_key']
-        if cfg['cex_exporter'].get('api_secret'):
-            settings['cex_exporter']['api_secret'] = cfg['cex_exporter']['api_secret']
-        if cfg['cex_exporter'].get('uid'):
-            settings['cex_exporter']['uid'] = cfg['cex_exporter']['uid']
-        if cfg['cex_exporter'].get('export') in ['text', 'http']:
-            settings['cex_exporter']['export'] = cfg['cex_exporter']['export']
-        if cfg['cex_exporter'].get('listen_port'):
-            settings['cex_exporter']['listen_port'] = cfg['cex_exporter']['listen_port']
+    if cfg.get('hitbtc_exporter'):
+        if cfg['hitbtc_exporter'].get('prom_folder'):
+            settings['hitbtc_exporter']['prom_folder'] = cfg['hitbtc_exporter']['prom_folder']
+        if cfg['hitbtc_exporter'].get('interval'):
+            settings['hitbtc_exporter']['interval'] = cfg['hitbtc_exporter']['interval']
+        if cfg['hitbtc_exporter'].get('api_key'):
+            settings['hitbtc_exporter']['api_key'] = cfg['hitbtc_exporter']['api_key']
+        if cfg['hitbtc_exporter'].get('api_secret'):
+            settings['hitbtc_exporter']['api_secret'] = cfg['hitbtc_exporter']['api_secret']
+        if cfg['hitbtc_exporter'].get('uid'):
+            settings['hitbtc_exporter']['uid'] = cfg['hitbtc_exporter']['uid']
+        if cfg['hitbtc_exporter'].get('export') in ['text', 'http']:
+            settings['hitbtc_exporter']['export'] = cfg['hitbtc_exporter']['export']
+        if cfg['hitbtc_exporter'].get('listen_port'):
+            settings['hitbtc_exporter']['listen_port'] = cfg['hitbtc_exporter']['listen_port']
 
 
-class CexCollector:
+class HitbtcCollector:
     rates = {}
     accounts = {}
     hasApiCredentials = False
     markets = None
 
     def __init__(self):
-        self.cex = ccxt.cex({'nonce': ccxt.cex.milliseconds})
+        self.hitbtc = ccxt.hitbtc2({'nonce': ccxt.hitbtc2.milliseconds})
         if (
-            settings['cex_exporter'].get('api_key')
-            and settings['cex_exporter'].get('api_secret')
+            settings['hitbtc_exporter'].get('api_key')
+            and settings['hitbtc_exporter'].get('api_secret')
         ):
-            self.cex.apiKey = settings['cex_exporter'].get('api_key')
-            self.cex.secret = settings['cex_exporter'].get('api_secret')
+            self.hitbtc.apiKey = settings['hitbtc_exporter'].get('api_key')
+            self.hitbtc.secret = settings['hitbtc_exporter'].get('api_secret')
             self.hasApiCredentials = True
 
-        if settings['cex_exporter'].get('uid'):
-            self.cex.uid = settings['cex_exporter'].get('uid')
+        if settings['hitbtc_exporter'].get('uid'):
+            self.hitbtc.uid = settings['hitbtc_exporter'].get('uid')
             self.hasApiCredentials = True
 
     def _getTickers(self):
@@ -79,29 +79,29 @@ class CexCollector:
         markets_loaded = False
         while markets_loaded is False:
             try:
-                self.cex.loadMarkets(True)
+                self.hitbtc.loadMarkets(True)
                 markets_loaded = True
             except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
                 log.warning('{}'.format(e))
                 time.sleep(1)
 
         tickers = {}
-        if self.cex.has['fetchTickers']:
+        if self.hitbtc.has['fetchTickers']:
             log.debug('Loading Tickers')
             try:
-                tickers = self.cex.fetch_tickers()
+                tickers = self.hitbtc.fetch_tickers()
             except (
                 ccxt.ExchangeNotAvailable,
                 ccxt.RequestTimeout
             ) as e:
                 log.warning('{}'.format(e))
-        elif self.cex.has['fetchCurrencies']:
-            for symbol in self.cex.symbols:
+        elif self.hitbtc.has['fetchCurrencies']:
+            for symbol in self.hitbtc.symbols:
                 log.debug('Loading Symbol {}'.format(symbol))
                 try:
                     tickers.update({
                         symbol: {
-                            'last': self.cex.fetch_ticker(symbol)['last']
+                            'last': self.hitbtc.fetch_ticker(symbol)['last']
                         }
                     })
                 except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
@@ -110,14 +110,14 @@ class CexCollector:
         else:
             if not self.markets:
                 log.debug('Fetching markets')
-                self.markets = self.cex.fetch_markets()
+                self.markets = self.hitbtc.fetch_markets()
             for market in self.markets:
                 symbol = market.get('symbol')
                 log.debug('Loading Symbol {}'.format(symbol))
                 try:
                     tickers.update({
                         symbol: {
-                            'last': self.cex.fetch_ticker(symbol)['last']
+                            'last': self.hitbtc.fetch_ticker(symbol)['last']
                         }
                     })
                 except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
@@ -143,7 +143,7 @@ class CexCollector:
         if self.hasApiCredentials:
             accounts = {}
             try:
-                accounts = self.cex.fetch_balance()
+                accounts = self.hitbtc.fetch_balance()
                 self.accounts = {}
             except (ccxt.ExchangeNotAvailable, ccxt.RequestTimeout) as e:
                 log.warning('{}'.format(e))
@@ -185,7 +185,7 @@ class CexCollector:
                 labels=[
                     self.rates[rate]['source_currency'],
                     self.rates[rate]['target_currency'],
-                    'cex'
+                    'hitbtc'
                 ]
             )
 
@@ -199,7 +199,7 @@ class CexCollector:
                             currency,
                             currency,
                             account_type,
-                            'cex'
+                            'hitbtc'
                         ]
                     )
 
@@ -208,23 +208,23 @@ class CexCollector:
 
 
 def _collect_to_text():
-    e = CexCollector()
+    e = HitbtcCollector()
     while True:
-        write_to_textfile('{0}/cex_exporter.prom'.format(settings['cex_exporter']['prom_folder']), e)
-        time.sleep(int(settings['cex_exporter']['interval']))
+        write_to_textfile('{0}/hitbtc_exporter.prom'.format(settings['hitbtc_exporter']['prom_folder']), e)
+        time.sleep(int(settings['hitbtc_exporter']['interval']))
 
 
 def _collect_to_http():
-    REGISTRY.register(CexCollector())
-    start_http_server(int(settings['cex_exporter']['listen_port']))
+    REGISTRY.register(HitbtcCollector())
+    start_http_server(int(settings['hitbtc_exporter']['listen_port']))
     while True:
-        time.sleep(int(settings['cex_exporter']['interval']))
+        time.sleep(int(settings['hitbtc_exporter']['interval']))
 
 
 if __name__ == '__main__':
     _settings()
     log.debug('Loaded settings: {}'.format(settings))
-    if settings['cex_exporter']['export'] == 'text':
+    if settings['hitbtc_exporter']['export'] == 'text':
         _collect_to_text()
-    if settings['cex_exporter']['export'] == 'http':
+    if settings['hitbtc_exporter']['export'] == 'http':
         _collect_to_http()
